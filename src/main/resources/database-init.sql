@@ -72,3 +72,22 @@ CREATE TABLE orders(
                                REFERENCES drones(id)
 );
 
+-- 4. Seed data: 3 stations and 2 drones per station
+INSERT INTO stations (name, position, address) VALUES
+    ('Mission Hub', ST_GeogFromText('SRID=4326;POINT(-122.4194 37.7749)'), '1 Market St, San Francisco, CA'),
+    ('Marina Hub', ST_GeogFromText('SRID=4326;POINT(-122.4367 37.8024)'), '2001 Chestnut St, San Francisco, CA'),
+    ('Sunset Hub', ST_GeogFromText('SRID=4326;POINT(-122.4862 37.7599)'), '2400 Judah St, San Francisco, CA');
+
+INSERT INTO drones (drone_code, station_id, battery_level, position, altitude, speed, status)
+SELECT 'DRONE-M1', id, 100, position, 0, 0, 0 FROM stations WHERE name = 'Mission Hub'
+UNION ALL
+SELECT 'DRONE-M2', id, 100, position, 0, 0, 0 FROM stations WHERE name = 'Mission Hub'
+UNION ALL
+SELECT 'DRONE-A1', id, 100, position, 0, 0, 0 FROM stations WHERE name = 'Marina Hub'
+UNION ALL
+SELECT 'DRONE-A2', id, 100, position, 0, 0, 0 FROM stations WHERE name = 'Marina Hub'
+UNION ALL
+SELECT 'DRONE-S1', id, 100, position, 0, 0, 0 FROM stations WHERE name = 'Sunset Hub'
+UNION ALL
+SELECT 'DRONE-S2', id, 100, position, 0, 0, 0 FROM stations WHERE name = 'Sunset Hub';
+
