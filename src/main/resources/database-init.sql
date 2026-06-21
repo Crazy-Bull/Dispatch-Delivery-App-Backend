@@ -5,6 +5,7 @@ DROP TABLE IF EXISTS planet_osm_line CASCADE;
 DROP TABLE IF EXISTS stations CASCADE;
 DROP TABLE IF EXISTS drones CASCADE;
 DROP TABLE IF EXISTS orders CASCADE;
+DROP TABLE IF EXISTS users CASCADE;
 
 -- 2. Extensions provisioning
 CREATE EXTENSION IF NOT EXISTS postgis;
@@ -52,10 +53,19 @@ CREATE TABLE drones(
                                REFERENCES stations(id)
 );
 
+--- users
+CREATE TABLE users(
+                      id BIGSERIAL PRIMARY KEY,
+                      name TEXT NOT NULL,
+                      address TEXT NOT NULL,
+                      email TEXT NOT NULL UNIQUE
+);
+
 --- orders
 CREATE TABLE orders(
                        id BIGSERIAL PRIMARY KEY,
                        order_no TEXT NOT NULL UNIQUE,
+                       user_id BIGINT NOT NULL,
                        station_id BIGINT NOT NULL,
                        assigned_drone_id BIGINT,
                        delivery_position GEOGRAPHY(POINT,4326) NOT NULL,
@@ -64,6 +74,9 @@ CREATE TABLE orders(
                        assigned_at TIMESTAMP,
                        delivered_at TIMESTAMP,
                        completed_at TIMESTAMP,
+                       CONSTRAINT fk_order_user
+                           FOREIGN KEY(user_id)
+                               REFERENCES users(id),
                        CONSTRAINT fk_order_station
                            FOREIGN KEY(station_id)
                                REFERENCES stations(id),
@@ -90,4 +103,8 @@ UNION ALL
 SELECT 'DRONE-S1', id, 100, position, 0, 0, 0 FROM stations WHERE name = 'Sunset Hub'
 UNION ALL
 SELECT 'DRONE-S2', id, 100, position, 0, 0, 0 FROM stations WHERE name = 'Sunset Hub';
+
+INSERT INTO users (name, address, email) VALUES
+    ('Alice Chen', '100 Valencia St, San Francisco, CA', 'alice.chen@example.com'),
+    ('Bob Martinez', '500 Brannan St, San Francisco, CA', 'bob.martinez@example.com');
 
