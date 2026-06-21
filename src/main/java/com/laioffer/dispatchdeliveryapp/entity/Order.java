@@ -10,6 +10,7 @@ import java.time.LocalDateTime;
 public record Order(
         @Id Long id,
         @Column("order_no") String orderNo,
+        @Column("user_id") Long userId,
         @Column("station_id") Long stationId,
         @Column("assigned_drone_id") Long assignedDroneId,
         @Column("delivery_position") String deliveryPosition,
