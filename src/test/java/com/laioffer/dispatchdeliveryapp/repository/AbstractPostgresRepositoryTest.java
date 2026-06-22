@@ -17,7 +17,7 @@ import org.testcontainers.utility.DockerImageName;
 @ActiveProfiles("test")
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Testcontainers(disabledWithoutDocker = true)
-abstract class AbstractPostgresRepositoryTest {
+public abstract class AbstractPostgresRepositoryTest {
 
     @Container
     static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>(

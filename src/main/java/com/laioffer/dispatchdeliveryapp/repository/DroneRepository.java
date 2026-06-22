@@ -39,4 +39,46 @@ public interface DroneRepository extends ListCrudRepository<Drone, Long> {
             @Param("altitude") Double altitude,
             @Param("speed") Double speed,
             @Param("status") Integer status);
+
+    @Query("""
+            SELECT ST_Distance(position, ST_GeogFromText(:targetWkt))
+            FROM drones
+            WHERE id = :id
+            """)
+    Optional<Double> findDistanceToTarget(@Param("id") Long id, @Param("targetWkt") String targetWkt);
+
+    @Modifying
+    @Query("""
+            UPDATE drones SET
+              position = CASE
+                WHEN ST_Distance(position, ST_GeogFromText(:targetWkt)) <= :stepMeters
+                THEN ST_GeogFromText(:targetWkt)
+                ELSE ST_Project(
+                  position::geography,
+                  LEAST(:stepMeters, ST_Distance(position, ST_GeogFromText(:targetWkt))),
+                  ST_Azimuth(
+                    position::geometry,
+                    ST_GeomFromText(:targetPointWkt, 4326)
+                  )
+                )::geography
+              END,
+              battery_level = GREATEST(0, LEAST(100, battery_level + :batteryDelta)),
+              status = :status
+            WHERE id = :id
+            """)
+    void updateDroneMovement(
+            @Param("id") Long id,
+            @Param("targetWkt") String targetWkt,
+            @Param("targetPointWkt") String targetPointWkt,
+            @Param("stepMeters") double stepMeters,
+            @Param("batteryDelta") int batteryDelta,
+            @Param("status") int status);
+
+    @Modifying
+    @Query("""
+            UPDATE drones SET
+              battery_level = LEAST(100, battery_level + 1)
+            WHERE id = :id
+            """)
+    void chargeBattery(@Param("id") Long id);
 }

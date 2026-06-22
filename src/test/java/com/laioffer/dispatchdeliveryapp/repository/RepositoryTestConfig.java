@@ -7,7 +7,7 @@ import org.springframework.data.jdbc.core.convert.JdbcCustomConversions;
 import java.util.List;
 
 @TestConfiguration
-class RepositoryTestConfig {
+public class RepositoryTestConfig {
 
     @Bean
     JdbcCustomConversions jdbcCustomConversions() {
