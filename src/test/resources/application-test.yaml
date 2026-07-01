@@ -6,3 +6,9 @@ spring:
 mock-delivery:
   enabled: true
   tick-interval-ms: 5000
+jwt:
+  secret: test-jwt-secret-key-for-integration-tests-only
+  expiration-ms: 86400000
+order-assignment:
+  min-battery-level: 20
+  delivery-speed: 10.0

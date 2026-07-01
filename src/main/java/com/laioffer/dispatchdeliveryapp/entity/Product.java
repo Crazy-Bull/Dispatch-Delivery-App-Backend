@@ -4,11 +4,13 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;
 
-@Table("users")
-public record User(
+import java.math.BigDecimal;
+
+@Table("products")
+public record Product(
         @Id Long id,
         String name,
-        String address,
-        String email,
-        @Column("password_hash") String passwordHash
+        String description,
+        BigDecimal price,
+        @Column("image_url") String imageUrl
 ) {}

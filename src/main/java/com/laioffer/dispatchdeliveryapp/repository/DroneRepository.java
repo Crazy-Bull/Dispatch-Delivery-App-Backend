@@ -47,6 +47,13 @@ public interface DroneRepository extends ListCrudRepository<Drone, Long> {
             """)
     Optional<Double> findDistanceToTarget(@Param("id") Long id, @Param("targetWkt") String targetWkt);
 
+    @Query("""
+            SELECT ST_AsText(position::geometry)
+            FROM drones
+            WHERE id = :id
+            """)
+    Optional<String> findPositionWktById(@Param("id") Long id);
+
     @Modifying
     @Query("""
             UPDATE drones SET
@@ -81,4 +88,14 @@ public interface DroneRepository extends ListCrudRepository<Drone, Long> {
             WHERE id = :id
             """)
     void chargeBattery(@Param("id") Long id);
+
+    @Modifying
+    @Query("""
+            UPDATE drones SET status = :status, speed = :speed
+            WHERE id = :id
+            """)
+    void assignToDelivery(
+            @Param("id") Long id,
+            @Param("status") int status,
+            @Param("speed") double speed);
 }

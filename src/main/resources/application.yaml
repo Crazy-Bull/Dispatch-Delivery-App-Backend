@@ -21,3 +21,9 @@ logging:
 mock-delivery:
   enabled: true
   tick-interval-ms: 5000
+jwt:
+  secret: ${JWT_SECRET:dispatch-delivery-app-jwt-secret-key-change-in-production}
+  expiration-ms: 86400000
+order-assignment:
+  min-battery-level: 20
+  delivery-speed: 10.0

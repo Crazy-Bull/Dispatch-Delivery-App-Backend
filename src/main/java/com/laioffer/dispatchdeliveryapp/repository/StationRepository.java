@@ -17,4 +17,16 @@ public interface StationRepository extends ListCrudRepository<Station, Long> {
             WHERE id = :id
             """)
     Optional<String> findPositionWktById(@Param("id") Long id);
+
+    @Query("""
+            SELECT ST_Distance(
+                position,
+                ST_GeogFromText(:deliveryPositionWkt)
+            ) / 1000.0
+            FROM stations
+            WHERE id = :id
+            """)
+    Optional<Double> findDistanceKmToPoint(
+            @Param("id") Long id,
+            @Param("deliveryPositionWkt") String deliveryPositionWkt);
 }

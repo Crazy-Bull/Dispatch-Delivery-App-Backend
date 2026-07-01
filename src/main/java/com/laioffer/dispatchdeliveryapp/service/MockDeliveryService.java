@@ -3,6 +3,7 @@ package com.laioffer.dispatchdeliveryapp.service;
 import com.laioffer.dispatchdeliveryapp.config.MockDeliveryProperties;
 import com.laioffer.dispatchdeliveryapp.entity.Drone;
 import com.laioffer.dispatchdeliveryapp.model.DroneStatus;
+import com.laioffer.dispatchdeliveryapp.model.OrderStatus;
 import com.laioffer.dispatchdeliveryapp.repository.DroneRepository;
 import com.laioffer.dispatchdeliveryapp.repository.OrderRepository;
 import com.laioffer.dispatchdeliveryapp.repository.StationRepository;
@@ -40,12 +41,6 @@ public class MockDeliveryService {
         double tickSeconds = properties.tickIntervalMs() / 1000.0;
         List<Drone> drones = droneRepository.findAll();
 
-        // #region agent log
-        try (var fw = new java.io.FileWriter("debug-591cf6.log", true)) {
-            fw.write("{\"sessionId\":\"591cf6\",\"hypothesisId\":\"H3\",\"location\":\"MockDeliveryService.tick\",\"message\":\"tick start\",\"data\":{\"droneCount\":" + drones.size() + ",\"tickIntervalMs\":" + properties.tickIntervalMs() + ",\"tickSeconds\":" + tickSeconds + "},\"timestamp\":" + System.currentTimeMillis() + ",\"runId\":\"pre-fix\"}\n");
-        } catch (Exception ignored) {}
-        // #endregion
-
         for (Drone drone : drones) {
             int status = drone.status();
             if (status == DroneStatus.WAITING) {
@@ -74,18 +69,15 @@ public class MockDeliveryService {
         String targetPointWkt = orderRepository.findDeliveryPositionWktByAssignedDroneId(drone.id())
                 .orElse(null);
 
-        // #region agent log
-        try (var fw = new java.io.FileWriter("debug-591cf6.log", true)) {
-            fw.write("{\"sessionId\":\"591cf6\",\"hypothesisId\":\"H2\",\"location\":\"MockDeliveryService.processDelivery\",\"message\":\"delivery target lookup\",\"data\":{\"droneId\":" + drone.id() + ",\"droneCode\":\"" + drone.droneCode() + "\",\"targetPointWkt\":" + (targetPointWkt == null ? "null" : "\"" + targetPointWkt.replace("\"", "\\\"") + "\"") + ",\"stepMeters\":" + stepMeters + "},\"timestamp\":" + System.currentTimeMillis() + ",\"runId\":\"pre-fix\"}\n");
-        } catch (Exception ignored) {}
-        // #endregion
-
         if (targetPointWkt == null) {
             log.warn("Drone {} is in delivery mode but has no assigned order", drone.droneCode());
             return;
         }
 
-        moveDrone(drone, targetPointWkt, stepMeters, -1, DroneStatus.RETURN, DroneStatus.DELIVERY);
+        boolean arrived = moveDrone(drone, targetPointWkt, stepMeters, -1, DroneStatus.RETURN, DroneStatus.DELIVERY);
+        if (arrived) {
+            orderRepository.markDeliveredByDroneId(drone.id(), OrderStatus.DELIVERED);
+        }
     }
 
     private void processReturn(Drone drone, double stepMeters) {
@@ -96,10 +88,13 @@ public class MockDeliveryService {
             return;
         }
 
-        moveDrone(drone, targetPointWkt, stepMeters, -1, DroneStatus.WAITING, DroneStatus.RETURN);
+        boolean arrived = moveDrone(drone, targetPointWkt, stepMeters, -1, DroneStatus.WAITING, DroneStatus.RETURN);
+        if (arrived) {
+            orderRepository.markCompletedByDroneId(drone.id(), OrderStatus.COMPLETED);
+        }
     }
 
-    private void moveDrone(
+    private boolean moveDrone(
             Drone drone,
             String targetPointWkt,
             double stepMeters,
@@ -112,15 +107,12 @@ public class MockDeliveryService {
         double distance = droneRepository.findDistanceToTarget(drone.id(), targetWkt)
                 .orElseThrow(() -> new IllegalStateException("Drone not found: " + drone.id()));
 
-        int newStatus = distance <= stepMeters ? arrivedStatus : inTransitStatus;
-
-        // #region agent log
-        try (var fw = new java.io.FileWriter("debug-591cf6.log", true)) {
-            fw.write("{\"sessionId\":\"591cf6\",\"hypothesisId\":\"H4\",\"location\":\"MockDeliveryService.moveDrone\",\"message\":\"movement decision\",\"data\":{\"droneId\":" + drone.id() + ",\"distance\":" + distance + ",\"stepMeters\":" + stepMeters + ",\"newStatus\":" + newStatus + ",\"arrivedStatus\":" + arrivedStatus + ",\"inTransitStatus\":" + inTransitStatus + "},\"timestamp\":" + System.currentTimeMillis() + ",\"runId\":\"pre-fix\"}\n");
-        } catch (Exception ignored) {}
-        // #endregion
+        boolean arrived = distance <= stepMeters;
+        int newStatus = arrived ? arrivedStatus : inTransitStatus;
 
         droneRepository.updateDroneMovement(
                 drone.id(), targetWkt, pointWkt, stepMeters, batteryDelta, newStatus);
+
+        return arrived;
     }
 }
