@@ -2,10 +2,13 @@ package com.laioffer.dispatchdeliveryapp.service;
 
 import com.laioffer.dispatchdeliveryapp.dto.AddUserRequest;
 import com.laioffer.dispatchdeliveryapp.dto.UpdateUserRequest;
+import com.laioffer.dispatchdeliveryapp.dto.UserResponse;
 import com.laioffer.dispatchdeliveryapp.entity.Order;
 import com.laioffer.dispatchdeliveryapp.entity.User;
 import com.laioffer.dispatchdeliveryapp.repository.OrderRepository;
 import com.laioffer.dispatchdeliveryapp.repository.UserRepository;
+import com.laioffer.dispatchdeliveryapp.util.UserMapper;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,24 +20,28 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final OrderRepository orderRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    public UserService(UserRepository userRepository, OrderRepository orderRepository) {
+    public UserService(
+            UserRepository userRepository,
+            OrderRepository orderRepository,
+            PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.orderRepository = orderRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
-    public List<User> getAllUsers() {
-        return userRepository.findAll();
+    public List<UserResponse> getAllUsers() {
+        return userRepository.findAll().stream().map(UserMapper::toResponse).toList();
     }
 
-    public User getById(Long id) {
-        return userRepository.findById(id)
-                .orElseThrow(() -> new NoSuchElementException("User not found: " + id));
+    public UserResponse getById(Long id) {
+        return UserMapper.toResponse(getUserEntity(id));
     }
 
-    public User getByEmail(String email) {
-        return userRepository.findByEmail(email)
-                .orElseThrow(() -> new NoSuchElementException("User not found: " + email));
+    public UserResponse getByEmail(String email) {
+        return UserMapper.toResponse(userRepository.findByEmail(email)
+                .orElseThrow(() -> new NoSuchElementException("User not found: " + email)));
     }
 
     public List<Order> getOrdersByUserId(Long userId) {
@@ -45,19 +52,25 @@ public class UserService {
     }
 
     @Transactional
-    public User addUser(AddUserRequest request) {
+    public UserResponse addUser(AddUserRequest request) {
         validateUserInput(request.name(), request.address(), request.email());
+        if (request.password() == null || request.password().length() < 6) {
+            throw new IllegalArgumentException("Password must be at least 6 characters");
+        }
 
         if (userRepository.findByEmail(request.email()).isPresent()) {
             throw new IllegalArgumentException("Email already exists: " + request.email());
         }
 
-        return userRepository.save(new User(null, request.name(), request.address(), request.email()));
+        String passwordHash = passwordEncoder.encode(request.password());
+        User saved = userRepository.save(new User(
+                null, request.name(), request.address(), request.email(), passwordHash));
+        return UserMapper.toResponse(saved);
     }
 
     @Transactional
-    public User updateUser(Long id, UpdateUserRequest request) {
-        User existing = getById(id);
+    public UserResponse updateUser(Long id, UpdateUserRequest request) {
+        User existing = getUserEntity(id);
         validateUserInput(request.name(), request.address(), request.email());
 
         userRepository.findByEmail(request.email())
@@ -66,7 +79,9 @@ public class UserService {
                     throw new IllegalArgumentException("Email already exists: " + request.email());
                 });
 
-        return userRepository.save(new User(id, request.name(), request.address(), request.email()));
+        User updated = userRepository.save(new User(
+                id, request.name(), request.address(), request.email(), existing.passwordHash()));
+        return UserMapper.toResponse(updated);
     }
 
     @Transactional
@@ -78,6 +93,11 @@ public class UserService {
             throw new IllegalStateException("Cannot delete user with existing orders: " + id);
         }
         userRepository.deleteById(id);
+    }
+
+    private User getUserEntity(Long id) {
+        return userRepository.findById(id)
+                .orElseThrow(() -> new NoSuchElementException("User not found: " + id));
     }
 
     private void validateUserInput(String name, String address, String email) {

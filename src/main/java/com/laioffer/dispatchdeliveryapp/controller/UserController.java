@@ -2,8 +2,8 @@ package com.laioffer.dispatchdeliveryapp.controller;
 
 import com.laioffer.dispatchdeliveryapp.dto.AddUserRequest;
 import com.laioffer.dispatchdeliveryapp.dto.UpdateUserRequest;
+import com.laioffer.dispatchdeliveryapp.dto.UserResponse;
 import com.laioffer.dispatchdeliveryapp.entity.Order;
-import com.laioffer.dispatchdeliveryapp.entity.User;
 import com.laioffer.dispatchdeliveryapp.service.UserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -31,12 +31,12 @@ public class UserController {
     }
 
     @GetMapping
-    public List<User> getAllUsers() {
+    public List<UserResponse> getAllUsers() {
         return userService.getAllUsers();
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<User> getUser(@PathVariable Long id) {
+    public ResponseEntity<UserResponse> getUser(@PathVariable Long id) {
         try {
             return ResponseEntity.ok(userService.getById(id));
         } catch (NoSuchElementException e) {
@@ -45,7 +45,7 @@ public class UserController {
     }
 
     @GetMapping("/search")
-    public ResponseEntity<User> getUserByEmail(@RequestParam String email) {
+    public ResponseEntity<UserResponse> getUserByEmail(@RequestParam String email) {
         try {
             return ResponseEntity.ok(userService.getByEmail(email));
         } catch (NoSuchElementException e) {
@@ -65,7 +65,7 @@ public class UserController {
     @PostMapping
     public ResponseEntity<?> addUser(@RequestBody AddUserRequest request) {
         try {
-            User user = userService.addUser(request);
+            UserResponse user = userService.addUser(request);
             return ResponseEntity.status(HttpStatus.CREATED).body(user);
         } catch (IllegalArgumentException e) {
             if (e.getMessage() != null && e.getMessage().contains("already exists")) {

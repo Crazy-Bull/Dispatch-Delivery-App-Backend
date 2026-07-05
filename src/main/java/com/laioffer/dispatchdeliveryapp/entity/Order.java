@@ -4,6 +4,7 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Table("orders")
@@ -15,6 +16,7 @@ public record Order(
         @Column("assigned_drone_id") Long assignedDroneId,
         @Column("delivery_position") String deliveryPosition,
         Integer status,
+        @Column("total_amount") BigDecimal totalAmount,
         @Column("created_at") LocalDateTime createdAt,
         @Column("assigned_at") LocalDateTime assignedAt,
         @Column("delivered_at") LocalDateTime deliveredAt,

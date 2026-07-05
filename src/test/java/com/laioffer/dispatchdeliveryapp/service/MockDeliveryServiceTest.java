@@ -43,8 +43,8 @@ class MockDeliveryServiceTest extends AbstractPostgresRepositoryTest {
                 """, DroneStatus.DELIVERY, drone.id());
 
         jdbcTemplate.update("""
-                INSERT INTO orders (order_no, user_id, station_id, assigned_drone_id, delivery_position, status, assigned_at)
-                VALUES (?, ?, ?, ?, ST_GeogFromText(?), 1, CURRENT_TIMESTAMP)
+                INSERT INTO orders (order_no, user_id, station_id, assigned_drone_id, delivery_position, status, total_amount, assigned_at)
+                VALUES (?, ?, ?, ?, ST_GeogFromText(?), 1, 0, CURRENT_TIMESTAMP)
                 """,
                 "ORD-TEST-1",
                 userId,
@@ -82,8 +82,8 @@ class MockDeliveryServiceTest extends AbstractPostgresRepositoryTest {
                 """, DroneStatus.DELIVERY, deliveryWkt, drone.id());
 
         jdbcTemplate.update("""
-                INSERT INTO orders (order_no, user_id, station_id, assigned_drone_id, delivery_position, status, assigned_at)
-                VALUES (?, ?, ?, ?, ST_GeogFromText(?), 1, CURRENT_TIMESTAMP)
+                INSERT INTO orders (order_no, user_id, station_id, assigned_drone_id, delivery_position, status, total_amount, assigned_at)
+                VALUES (?, ?, ?, ?, ST_GeogFromText(?), 1, 0, CURRENT_TIMESTAMP)
                 """,
                 "ORD-TEST-2",
                 userId,
