@@ -6,6 +6,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.annotation.Profile;
 import org.springframework.context.event.EventListener;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.core.JdbcTemplate; // 🔥 注入 JdbcTemplate 处理原生的过程函数调用
@@ -16,6 +17,7 @@ import java.io.File;
 import java.io.InputStreamReader;
 
 @Component
+@Profile("!dev") // Dev profile keeps the local install lightweight (no PBF, no osm2pgsql).
 public class MapDataInitializer {
 
     private static final Logger log = LoggerFactory.getLogger(MapDataInitializer.class);

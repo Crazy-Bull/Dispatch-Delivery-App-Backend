@@ -10,5 +10,6 @@ public record OrderTrackingResponse(
         String droneCode,
         Integer droneStatus,
         Double droneSpeed,
-        Integer droneBattery
+        Integer droneBattery,
+        String vehicleMode
 ) {}

@@ -13,5 +13,6 @@ public record Drone(
         String position,
         Double altitude,
         Double speed,
-        Integer status
+        Integer status,
+        @Column("vehicle_mode") String vehicleMode
 ) {}

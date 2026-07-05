@@ -10,5 +10,8 @@ public record DeliveryPlanResponse(
         Double distanceKm,
         Integer availableDrones,
         boolean feasible,
-        String infeasibilityReason
+        String infeasibilityReason,
+        String vehicleMode,
+        Integer estimatedMinutes,
+        Double estimatedCost
 ) {}

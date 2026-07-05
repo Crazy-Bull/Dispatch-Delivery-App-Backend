@@ -27,3 +27,4 @@ jwt:
 order-assignment:
   min-battery-level: 20
   delivery-speed: 10.0
+  robot-delivery-speed: 6.0

@@ -15,6 +15,8 @@ public record Order(
         @Column("station_id") Long stationId,
         @Column("assigned_drone_id") Long assignedDroneId,
         @Column("delivery_position") String deliveryPosition,
+        @Column("delivery_address") String deliveryAddress,
+        @Column("delivery_mode") String deliveryMode,
         Integer status,
         @Column("total_amount") BigDecimal totalAmount,
         @Column("created_at") LocalDateTime createdAt,

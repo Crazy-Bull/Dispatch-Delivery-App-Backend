@@ -11,8 +11,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.NoSuchElementException;
-
 @RestController
 @RequestMapping("/store")
 public class StoreController {
@@ -24,17 +22,11 @@ public class StoreController {
     }
 
     @PostMapping("/checkout")
-    public ResponseEntity<?> checkout(Authentication authentication, @RequestBody CreateOrderRequest request) {
-        try {
-            Long userId = (Long) authentication.getPrincipal();
-            OrderDetailResponse response = orderService.createOrder(userId, request);
-            return ResponseEntity.status(HttpStatus.CREATED).body(response);
-        } catch (NoSuchElementException e) {
-            return ResponseEntity.notFound().build();
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        } catch (IllegalStateException e) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
-        }
+    public ResponseEntity<OrderDetailResponse> checkout(
+            Authentication authentication,
+            @RequestBody CreateOrderRequest request) {
+        Long userId = (Long) authentication.getPrincipal();
+        OrderDetailResponse response = orderService.createOrder(userId, request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 }

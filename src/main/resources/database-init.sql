@@ -41,19 +41,20 @@ CREATE TABLE stations(
                          address TEXT
 );
 
---- Drones and tracking system
+--- Drones and tracking system (also covers ground robots)
 CREATE TABLE drones(
-                       id BIGSERIAL PRIMARY KEY,
-                       drone_code TEXT NOT NULL UNIQUE,
-                       station_id BIGINT NOT NULL,
-                       battery_level INTEGER NOT NULL DEFAULT 100,
-                       position GEOGRAPHY(POINT,4326) NOT NULL,
-                       altitude DOUBLE PRECISION NOT NULL DEFAULT 0,
-                       speed DOUBLE PRECISION NOT NULL DEFAULT 0,
-                       status SMALLINT NOT NULL DEFAULT 0,
-                       CONSTRAINT fk_drone_station
-                           FOREIGN KEY(station_id)
-                               REFERENCES stations(id)
+                      id BIGSERIAL PRIMARY KEY,
+                      drone_code TEXT NOT NULL UNIQUE,
+                      station_id BIGINT NOT NULL,
+                      battery_level INTEGER NOT NULL DEFAULT 100,
+                      position GEOGRAPHY(POINT,4326) NOT NULL,
+                      altitude DOUBLE PRECISION NOT NULL DEFAULT 0,
+                      speed DOUBLE PRECISION NOT NULL DEFAULT 0,
+                      status SMALLINT NOT NULL DEFAULT 0,
+                      vehicle_mode VARCHAR(16) NOT NULL DEFAULT 'DRONE',
+                      CONSTRAINT fk_drone_station
+                          FOREIGN KEY(station_id)
+                              REFERENCES stations(id)
 );
 
 --- users
@@ -90,27 +91,29 @@ CREATE TABLE station_products(
 
 --- orders
 CREATE TABLE orders(
-                       id BIGSERIAL PRIMARY KEY,
-                       order_no TEXT NOT NULL UNIQUE,
-                       user_id BIGINT NOT NULL,
-                       station_id BIGINT NOT NULL,
-                       assigned_drone_id BIGINT,
-                       delivery_position GEOGRAPHY(POINT,4326) NOT NULL,
-                       status SMALLINT NOT NULL DEFAULT 0,
-                       total_amount DECIMAL(10, 2) NOT NULL DEFAULT 0,
-                       created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                       assigned_at TIMESTAMP,
-                       delivered_at TIMESTAMP,
-                       completed_at TIMESTAMP,
-                       CONSTRAINT fk_order_user
-                           FOREIGN KEY(user_id)
-                               REFERENCES users(id),
-                       CONSTRAINT fk_order_station
-                           FOREIGN KEY(station_id)
-                               REFERENCES stations(id),
-                       CONSTRAINT fk_order_drone
-                           FOREIGN KEY(assigned_drone_id)
-                               REFERENCES drones(id)
+                      id BIGSERIAL PRIMARY KEY,
+                      order_no TEXT NOT NULL UNIQUE,
+                      user_id BIGINT NOT NULL,
+                      station_id BIGINT NOT NULL,
+                      assigned_drone_id BIGINT,
+                      delivery_position GEOGRAPHY(POINT,4326) NOT NULL,
+                      delivery_address TEXT,
+                      delivery_mode VARCHAR(16) NOT NULL DEFAULT 'DRONE',
+                      status SMALLINT NOT NULL DEFAULT 0,
+                      total_amount DECIMAL(10, 2) NOT NULL DEFAULT 0,
+                      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                      assigned_at TIMESTAMP,
+                      delivered_at TIMESTAMP,
+                      completed_at TIMESTAMP,
+                      CONSTRAINT fk_order_user
+                          FOREIGN KEY(user_id)
+                              REFERENCES users(id),
+                      CONSTRAINT fk_order_station
+                          FOREIGN KEY(station_id)
+                              REFERENCES stations(id),
+                      CONSTRAINT fk_order_drone
+                          FOREIGN KEY(assigned_drone_id)
+                              REFERENCES drones(id)
 );
 
 --- order line items
@@ -134,18 +137,24 @@ INSERT INTO stations (name, position, address) VALUES
     ('Marina Hub', ST_GeogFromText('SRID=4326;POINT(-122.4367 37.8024)'), '2001 Chestnut St, San Francisco, CA'),
     ('Sunset Hub', ST_GeogFromText('SRID=4326;POINT(-122.4862 37.7599)'), '2400 Judah St, San Francisco, CA');
 
-INSERT INTO drones (drone_code, station_id, battery_level, position, altitude, speed, status)
-SELECT 'DRONE-M1', id, 100, position, 0, 0, 0 FROM stations WHERE name = 'Mission Hub'
+INSERT INTO drones (drone_code, station_id, battery_level, position, altitude, speed, status, vehicle_mode)
+SELECT 'DRONE-M1', id, 100, position, 80, 0, 0, 'DRONE' FROM stations WHERE name = 'Mission Hub'
 UNION ALL
-SELECT 'DRONE-M2', id, 100, position, 0, 0, 0 FROM stations WHERE name = 'Mission Hub'
+SELECT 'DRONE-M2', id, 100, position, 80, 0, 0, 'DRONE' FROM stations WHERE name = 'Mission Hub'
 UNION ALL
-SELECT 'DRONE-A1', id, 100, position, 0, 0, 0 FROM stations WHERE name = 'Marina Hub'
+SELECT 'DRONE-A1', id, 100, position, 80, 0, 0, 'DRONE' FROM stations WHERE name = 'Marina Hub'
 UNION ALL
-SELECT 'DRONE-A2', id, 100, position, 0, 0, 0 FROM stations WHERE name = 'Marina Hub'
+SELECT 'DRONE-A2', id, 100, position, 80, 0, 0, 'DRONE' FROM stations WHERE name = 'Marina Hub'
 UNION ALL
-SELECT 'DRONE-S1', id, 100, position, 0, 0, 0 FROM stations WHERE name = 'Sunset Hub'
+SELECT 'DRONE-S1', id, 100, position, 80, 0, 0, 'DRONE' FROM stations WHERE name = 'Sunset Hub'
 UNION ALL
-SELECT 'DRONE-S2', id, 100, position, 0, 0, 0 FROM stations WHERE name = 'Sunset Hub';
+SELECT 'DRONE-S2', id, 100, position, 80, 0, 0, 'DRONE' FROM stations WHERE name = 'Sunset Hub'
+UNION ALL
+SELECT 'ROBOT-M1', id, 100, position, 0, 0, 0, 'ROBOT' FROM stations WHERE name = 'Mission Hub'
+UNION ALL
+SELECT 'ROBOT-A1', id, 100, position, 0, 0, 0, 'ROBOT' FROM stations WHERE name = 'Marina Hub'
+UNION ALL
+SELECT 'ROBOT-S1', id, 100, position, 0, 0, 0, 'ROBOT' FROM stations WHERE name = 'Sunset Hub';
 
 -- Default password for seed users: password123
 INSERT INTO users (name, address, email, password_hash) VALUES
@@ -154,23 +163,23 @@ INSERT INTO users (name, address, email, password_hash) VALUES
 
 INSERT INTO products (name, description, price, image_url) VALUES
     ('Organic Avocados (3-pack)', 'Fresh California avocados', 8.99,
-     'https://images.unsplash.com/photo-1523049673857-ae8efb4241e8?w=400&h=400&fit=crop'),
+     'https://picsum.photos/seed/avocado/400/400'),
     ('Sourdough Bread', 'Artisan San Francisco sourdough loaf', 6.50,
-     'https://images.unsplash.com/photo-1509440159596-023109603a77?w=400&h=400&fit=crop'),
+     'https://picsum.photos/seed/sourdough/400/400'),
     ('Cold Brew Coffee (32oz)', 'Locally roasted cold brew', 5.99,
-     'https://images.unsplash.com/photo-1517701554657-f96066381705?w=400&h=400&fit=crop'),
+     'https://picsum.photos/seed/coldbrew/400/400'),
     ('Fresh Salmon Fillet', 'Wild-caught Pacific salmon', 18.99,
-     'https://images.unsplash.com/photo-1519708227418-f1807756a880?w=400&h=400&fit=crop'),
+     'https://picsum.photos/seed/salmon/400/400'),
     ('Mixed Greens Salad Kit', 'Organic salad with dressing', 7.49,
-     'https://images.unsplash.com/photo-1546066621-842cac658919?w=400&h=400&fit=crop'),
+     'https://picsum.photos/seed/salad/400/400'),
     ('Sparkling Water (12-pack)', 'Premium sparkling mineral water', 9.99,
-     'https://images.unsplash.com/photo-1523362628746-0c100150b504?w=400&h=400&fit=crop'),
+     'https://picsum.photos/seed/sparkling/400/400'),
     ('Matcha Latte Kit', 'Ceremonial grade matcha with oat milk', 12.99,
-     'https://images.unsplash.com/photo-1556678893-371087474945?w=400&h=400&fit=crop'),
+     'https://picsum.photos/seed/matcha/400/400'),
     ('Vegan Burrito Bowl', 'Rice, beans, guacamole, and salsa', 11.49,
-     'https://images.unsplash.com/photo-1626700051175-6816013ee784?w=400&h=400&fit=crop'),
+     'https://picsum.photos/seed/burrito/400/400'),
     ('Dark Chocolate Bar', '70% cacao single-origin chocolate', 4.99,
-     'https://images.unsplash.com/photo-1481391319763-054352947d67?w=400&h=400&fit=crop');
+     'https://picsum.photos/seed/chocolate/400/400');
 
 -- Every station stocks every product
 INSERT INTO station_products (station_id, product_id, stock)

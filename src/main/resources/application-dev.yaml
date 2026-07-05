@@ -1,0 +1,20 @@
+# Local dev profile.
+# Activated via: SPRING_PROFILES_ACTIVE=dev ./gradlew bootRun
+# Purpose: keep local installation minimal — do NOT pull SF PBF or require osm2pgsql.
+# Note: with this profile, MapDataInitializer bean is NOT registered
+# (it is annotated @Profile("!dev") in code). Drone delivery still works
+# because distance checks use ST_Distance (no pgRouting topology needed).
+
+spring:
+  sql:
+    init:
+      # Set to 'never' once the schema is loaded — otherwise the seed
+      # script drops and re-creates every table on every bootRun.
+      # Use INIT_DB env var to override (always | never).
+      mode: ${INIT_DB:never}
+
+mock-delivery:
+  enabled: true
+  # Demo speed-up: tick every 2s instead of 5s so the drone visibly moves
+  # within a class-length presentation window.
+  tick-interval-ms: 2000
