@@ -27,3 +27,7 @@ jwt:
 order-assignment:
   min-battery-level: 20
   delivery-speed: 10.0
+ai:
+  api-key: ${OPENAI_API_KEY:}
+  model: ${OPENAI_MODEL:gpt-4o-mini}
+  base-url: ${OPENAI_BASE_URL:https://api.openai.com/v1}

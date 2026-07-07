@@ -14,7 +14,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
-@EnableConfigurationProperties({JwtProperties.class, OrderAssignmentProperties.class})
+@EnableConfigurationProperties({JwtProperties.class, OrderAssignmentProperties.class, AiProperties.class})
 public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;

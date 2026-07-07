@@ -78,6 +78,18 @@ export interface CartLine {
   quantity: number;
 }
 
+export interface RecommendedItem {
+  product_id: number;
+  quantity: number;
+  reason: string;
+  product: Product;
+}
+
+export interface RecommendationResponse {
+  summary: string;
+  items: RecommendedItem[];
+}
+
 export const STATION_NAMES: Record<number, string> = {
   1: 'Mission Hub',
   2: 'Marina Hub',
