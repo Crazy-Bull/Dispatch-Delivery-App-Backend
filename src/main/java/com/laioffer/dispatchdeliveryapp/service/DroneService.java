@@ -57,7 +57,8 @@ public class DroneService {
                 positionWkt,
                 altitude,
                 speed,
-                status);
+                status,
+                "DRONE");
 
         return droneRepository.findByDroneCode(request.droneCode())
                 .orElseThrow(() -> new IllegalStateException("Failed to load drone after insert: " + request.droneCode()));

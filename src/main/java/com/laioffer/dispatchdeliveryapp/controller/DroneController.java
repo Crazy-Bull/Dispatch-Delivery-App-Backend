@@ -34,11 +34,7 @@ public class DroneController {
 
     @GetMapping("/{id}")
     public ResponseEntity<Drone> getDrone(@PathVariable Long id) {
-        try {
-            return ResponseEntity.ok(droneService.getById(id));
-        } catch (NoSuchElementException e) {
-            return ResponseEntity.notFound().build();
-        }
+        return ResponseEntity.ok(droneService.getById(id));
     }
 
     @GetMapping("/search")
@@ -50,25 +46,14 @@ public class DroneController {
     }
 
     @PostMapping
-    public ResponseEntity<?> addDrone(@RequestBody AddDroneRequest request) {
-        try {
-            Drone drone = droneService.addDrone(request);
-            return ResponseEntity.status(HttpStatus.CREATED).body(drone);
-        } catch (IllegalArgumentException e) {
-            if (e.getMessage() != null && e.getMessage().contains("already exists")) {
-                return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
-            }
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+    public ResponseEntity<Drone> addDrone(@RequestBody AddDroneRequest request) {
+        Drone drone = droneService.addDrone(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(drone);
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteDrone(@PathVariable Long id) {
-        try {
-            droneService.deleteDrone(id);
-            return ResponseEntity.noContent().build();
-        } catch (NoSuchElementException e) {
-            return ResponseEntity.notFound().build();
-        }
+        droneService.deleteDrone(id);
+        return ResponseEntity.noContent().build();
     }
 }

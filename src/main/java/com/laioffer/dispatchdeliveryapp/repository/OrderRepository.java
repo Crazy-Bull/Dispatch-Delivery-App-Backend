@@ -64,11 +64,11 @@ public interface OrderRepository extends ListCrudRepository<Order, Long> {
     @Query("""
 
             INSERT INTO orders (order_no, user_id, station_id, assigned_drone_id, delivery_position,
-
+                                delivery_address, delivery_mode,
                                 status, total_amount, assigned_at)
 
             VALUES (:orderNo, :userId, :stationId, :assignedDroneId, ST_GeogFromText(:deliveryPositionWkt),
-
+                    :deliveryAddress, :deliveryMode,
                     :status, :totalAmount, CURRENT_TIMESTAMP)
 
             """)
@@ -84,6 +84,10 @@ public interface OrderRepository extends ListCrudRepository<Order, Long> {
             @Param("assignedDroneId") Long assignedDroneId,
 
             @Param("deliveryPositionWkt") String deliveryPositionWkt,
+
+            @Param("deliveryAddress") String deliveryAddress,
+
+            @Param("deliveryMode") String deliveryMode,
 
             @Param("status") int status,
 
@@ -122,4 +126,3 @@ public interface OrderRepository extends ListCrudRepository<Order, Long> {
     void markCompletedByDroneId(@Param("droneId") Long droneId, @Param("status") int status);
 
 }
-

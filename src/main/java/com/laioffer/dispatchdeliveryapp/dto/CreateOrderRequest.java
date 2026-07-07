@@ -6,5 +6,7 @@ public record CreateOrderRequest(
         Long stationId,
         Double longitude,
         Double latitude,
-        List<OrderItemRequest> items
+        List<OrderItemRequest> items,
+        String deliveryAddress,
+        String deliveryMode
 ) {}

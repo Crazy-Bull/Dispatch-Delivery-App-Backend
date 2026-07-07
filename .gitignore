@@ -38,3 +38,7 @@ out/
 
 ### Generated documentation & diagrams ###
 docs/
+
+### Cleanup scripts ###
+CLEANUP.md
+cleanup.sh

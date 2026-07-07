@@ -8,12 +8,16 @@ import com.laioffer.dispatchdeliveryapp.entity.User;
 import com.laioffer.dispatchdeliveryapp.repository.UserRepository;
 import com.laioffer.dispatchdeliveryapp.security.JwtService;
 import com.laioffer.dispatchdeliveryapp.util.UserMapper;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class AuthService {
+
+    private static final BadCredentialsException INVALID_CREDENTIALS =
+            new BadCredentialsException("Invalid email or password");
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -47,17 +51,17 @@ public class AuthService {
 
     public AuthResponse login(LoginRequest request) {
         if (request.email() == null || request.email().isBlank()) {
-            throw new IllegalArgumentException("Email is required");
+            throw new BadCredentialsException("Email is required");
         }
         if (request.password() == null || request.password().isBlank()) {
-            throw new IllegalArgumentException("Password is required");
+            throw new BadCredentialsException("Password is required");
         }
 
         User user = userRepository.findByEmail(request.email())
-                .orElseThrow(() -> new IllegalArgumentException("Invalid email or password"));
+                .orElseThrow(() -> INVALID_CREDENTIALS);
 
         if (!passwordEncoder.matches(request.password(), user.passwordHash())) {
-            throw new IllegalArgumentException("Invalid email or password");
+            throw INVALID_CREDENTIALS;
         }
 
         UserResponse userResponse = UserMapper.toResponse(user);

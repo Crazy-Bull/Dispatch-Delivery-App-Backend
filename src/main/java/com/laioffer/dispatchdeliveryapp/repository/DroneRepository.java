@@ -26,10 +26,23 @@ public interface DroneRepository extends ListCrudRepository<Drone, Long> {
             @Param("status") Integer status,
             @Param("minBatteryLevel") Integer minBatteryLevel);
 
+    @Query("""
+            SELECT * FROM drones
+            WHERE station_id = :stationId
+              AND vehicle_mode = :vehicleMode
+              AND status = :status
+              AND battery_level >= :minBatteryLevel
+            """)
+    List<Drone> findByStationIdAndVehicleModeAndStatusAndMinBatteryLevel(
+            @Param("stationId") Long stationId,
+            @Param("vehicleMode") String vehicleMode,
+            @Param("status") Integer status,
+            @Param("minBatteryLevel") Integer minBatteryLevel);
+
     @Modifying
     @Query("""
-            INSERT INTO drones (drone_code, station_id, battery_level, position, altitude, speed, status)
-            VALUES (:droneCode, :stationId, :batteryLevel, ST_GeogFromText(:positionWkt), :altitude, :speed, :status)
+            INSERT INTO drones (drone_code, station_id, battery_level, position, altitude, speed, status, vehicle_mode)
+            VALUES (:droneCode, :stationId, :batteryLevel, ST_GeogFromText(:positionWkt), :altitude, :speed, :status, :vehicleMode)
             """)
     void insertDrone(
             @Param("droneCode") String droneCode,
@@ -38,7 +51,8 @@ public interface DroneRepository extends ListCrudRepository<Drone, Long> {
             @Param("positionWkt") String positionWkt,
             @Param("altitude") Double altitude,
             @Param("speed") Double speed,
-            @Param("status") Integer status);
+            @Param("status") Integer status,
+            @Param("vehicleMode") String vehicleMode);
 
     @Query("""
             SELECT ST_Distance(position, ST_GeogFromText(:targetWkt))

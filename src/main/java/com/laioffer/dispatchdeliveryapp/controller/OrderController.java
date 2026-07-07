@@ -1,5 +1,6 @@
 package com.laioffer.dispatchdeliveryapp.controller;
 
+import com.laioffer.dispatchdeliveryapp.dto.ApiError;
 import com.laioffer.dispatchdeliveryapp.dto.CreateOrderRequest;
 import com.laioffer.dispatchdeliveryapp.dto.OrderDetailResponse;
 import com.laioffer.dispatchdeliveryapp.dto.OrderPlansRequest;
@@ -39,53 +40,33 @@ public class OrderController {
     public ResponseEntity<OrderTrackingResponse> getOrderTracking(
             Authentication authentication,
             @PathVariable Long id) {
-        try {
-            Long userId = (Long) authentication.getPrincipal();
-            return ResponseEntity.ok(orderService.getOrderTracking(id, userId));
-        } catch (NoSuchElementException e) {
-            return ResponseEntity.notFound().build();
-        }
+        Long userId = (Long) authentication.getPrincipal();
+        return ResponseEntity.ok(orderService.getOrderTracking(id, userId));
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<OrderDetailResponse> getOrder(@PathVariable Long id) {
-        try {
-            return ResponseEntity.ok(orderService.getOrderDetail(id));
-        } catch (NoSuchElementException e) {
-            return ResponseEntity.notFound().build();
-        }
+        return ResponseEntity.ok(orderService.getOrderDetail(id));
     }
 
     @GetMapping("/search")
-    public ResponseEntity<List<Order>> getOrdersByUser(@RequestParam("user_id") Long userId) {
-        try {
-            return ResponseEntity.ok(orderService.getOrdersByUserId(userId));
-        } catch (NoSuchElementException e) {
-            return ResponseEntity.notFound().build();
-        }
+    public ResponseEntity<List<Order>> getOrdersByUser(Authentication authentication) {
+        Long userId = (Long) authentication.getPrincipal();
+        return ResponseEntity.ok(orderService.getOrdersByUserId(userId));
     }
 
     @PostMapping("/plans")
-    public ResponseEntity<?> getDeliveryPlans(@RequestBody OrderPlansRequest request) {
-        try {
-            return ResponseEntity.ok(orderService.getDeliveryPlans(request));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+    public List<com.laioffer.dispatchdeliveryapp.dto.DeliveryPlanResponse> getDeliveryPlans(
+            @RequestBody OrderPlansRequest request) {
+        return orderService.getDeliveryPlans(request);
     }
 
     @PostMapping
-    public ResponseEntity<?> createOrder(Authentication authentication, @RequestBody CreateOrderRequest request) {
-        try {
-            Long userId = (Long) authentication.getPrincipal();
-            OrderDetailResponse response = orderService.createOrder(userId, request);
-            return ResponseEntity.status(HttpStatus.CREATED).body(response);
-        } catch (NoSuchElementException e) {
-            return ResponseEntity.notFound().build();
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        } catch (IllegalStateException e) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
-        }
+    public ResponseEntity<OrderDetailResponse> createOrder(
+            Authentication authentication,
+            @RequestBody CreateOrderRequest request) {
+        Long userId = (Long) authentication.getPrincipal();
+        OrderDetailResponse response = orderService.createOrder(userId, request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 }
