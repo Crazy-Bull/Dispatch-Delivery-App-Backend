@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { createOrder, getDeliveryPlans, getProducts } from '../api';
+import { createOrder, getDeliveryPlans, getProducts, getRecommendations } from '../api';
 import { ApiError } from '../api/client';
 import { useAuth } from '../context/AuthContext';
-import type { CartLine, DeliveryPlan, Product } from '../types';
+import type { CartLine, DeliveryPlan, Product, RecommendedItem } from '../types';
 import { STATION_NAMES } from '../types';
 
 const DEFAULT_COORDS = { longitude: -122.4194, latitude: 37.7749 };
@@ -11,6 +11,12 @@ const PRODUCT_IMAGE_FALLBACK =
   encodeURIComponent(
     '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400"><rect fill="#e2e8f0" width="400" height="400"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#64748b" font-family="sans-serif" font-size="18">No photo</text></svg>',
   );
+
+interface PendingRecommendation {
+  item: RecommendedItem;
+  selected: boolean;
+  quantity: number;
+}
 
 function formatPrice(value: number) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
@@ -29,6 +35,11 @@ export function ShopPanel() {
   const [lastOrderId, setLastOrderId] = useState<number | null>(null);
   const [plans, setPlans] = useState<DeliveryPlan[] | null>(null);
   const [selectedPlan, setSelectedPlan] = useState<DeliveryPlan | null>(null);
+
+  const [recommendQuery, setRecommendQuery] = useState('');
+  const [recommendSummary, setRecommendSummary] = useState<string | null>(null);
+  const [pendingRecommendations, setPendingRecommendations] = useState<PendingRecommendation[]>([]);
+  const [loadingRecommendations, setLoadingRecommendations] = useState(false);
 
   const loadProducts = useCallback(async () => {
     setLoadingProducts(true);
@@ -52,35 +63,43 @@ export function ShopPanel() {
     [cart],
   );
 
-  const addToCart = (product: Product) => {
-    setMessage(null);
-    setError(null);
+  const resetCheckoutState = () => {
     setPlans(null);
     setSelectedPlan(null);
+  };
+
+  const addToCartWithQuantity = (product: Product, quantity: number) => {
+    if (quantity <= 0) return;
+    setMessage(null);
+    setError(null);
+    resetCheckoutState();
     if (product.stock <= 0) {
       setError('Out of stock at all hubs');
       return;
     }
+    const qty = Math.min(quantity, product.stock);
     setCart((prev) => {
       const existing = prev.find((line) => line.product.id === product.id);
       if (existing) {
-        if (existing.quantity >= product.stock) {
+        const nextQty = Math.min(existing.quantity + qty, product.stock);
+        if (nextQty === existing.quantity) {
           setError(`Only ${product.stock} available at the best-stocked hub`);
           return prev;
         }
         return prev.map((line) =>
-          line.product.id === product.id
-            ? { ...line, quantity: line.quantity + 1 }
-            : line,
+          line.product.id === product.id ? { ...line, quantity: nextQty } : line,
         );
       }
-      return [...prev, { product, quantity: 1 }];
+      return [...prev, { product, quantity: qty }];
     });
   };
 
+  const addToCart = (product: Product) => {
+    addToCartWithQuantity(product, 1);
+  };
+
   const updateQuantity = (productId: number, delta: number) => {
-    setPlans(null);
-    setSelectedPlan(null);
+    resetCheckoutState();
     setCart((prev) =>
       prev
         .map((line) => {
@@ -99,10 +118,70 @@ export function ShopPanel() {
 
   const clearCart = () => {
     setCart([]);
-    setPlans(null);
-    setSelectedPlan(null);
+    resetCheckoutState();
     setError(null);
     setMessage(null);
+  };
+
+  const fetchRecommendations = async () => {
+    if (!token || !recommendQuery.trim()) return;
+    setLoadingRecommendations(true);
+    setError(null);
+    setMessage(null);
+    setRecommendSummary(null);
+    setPendingRecommendations([]);
+    try {
+      const result = await getRecommendations(token, recommendQuery.trim());
+      setRecommendSummary(result.summary);
+      setPendingRecommendations(
+        result.items.map((item) => ({
+          item,
+          selected: true,
+          quantity: item.quantity,
+        })),
+      );
+      if (result.items.length === 0) {
+        setError('No matching items found. Try rephrasing your request.');
+      }
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Failed to get recommendations');
+    } finally {
+      setLoadingRecommendations(false);
+    }
+  };
+
+  const toggleRecommendation = (productId: number) => {
+    setPendingRecommendations((prev) =>
+      prev.map((entry) =>
+        entry.item.product_id === productId ? { ...entry, selected: !entry.selected } : entry,
+      ),
+    );
+  };
+
+  const updateRecommendationQuantity = (productId: number, delta: number) => {
+    setPendingRecommendations((prev) =>
+      prev.map((entry) => {
+        if (entry.item.product_id !== productId) return entry;
+        const maxStock = entry.item.product.stock;
+        const nextQty = Math.max(1, Math.min(entry.quantity + delta, maxStock));
+        return { ...entry, quantity: nextQty };
+      }),
+    );
+  };
+
+  const addSelectedRecommendationsToCart = () => {
+    const selected = pendingRecommendations.filter((entry) => entry.selected);
+    if (selected.length === 0) {
+      setError('Select at least one recommended item.');
+      return;
+    }
+    selected.forEach((entry) => {
+      addToCartWithQuantity(entry.item.product, entry.quantity);
+    });
+    setMessage(`Added ${selected.length} recommended item${selected.length === 1 ? '' : 's'} to cart.`);
+    setPendingRecommendations([]);
+    setRecommendSummary(null);
+    setRecommendQuery('');
   };
 
   const loadPlans = async () => {
@@ -182,6 +261,90 @@ export function ShopPanel() {
           Refresh
         </button>
       </div>
+
+      <section className="recommend-panel">
+        <h3>AI shopping assistant</h3>
+        <p className="muted">
+          Describe what you need in plain language — we&apos;ll suggest items you can review and add to your cart.
+        </p>
+        <div className="recommend-form">
+          <textarea
+            className="recommend-input"
+            rows={3}
+            placeholder="e.g. I'm hosting brunch for 4 friends and want something healthy with drinks"
+            value={recommendQuery}
+            onChange={(e) => setRecommendQuery(e.target.value)}
+            disabled={loadingRecommendations}
+          />
+          <button
+            type="button"
+            className="btn primary"
+            onClick={fetchRecommendations}
+            disabled={loadingRecommendations || !recommendQuery.trim()}
+          >
+            {loadingRecommendations ? 'Thinking…' : 'Get recommendations'}
+          </button>
+        </div>
+
+        {recommendSummary && (
+          <p className="recommend-summary">{recommendSummary}</p>
+        )}
+
+        {pendingRecommendations.length > 0 && (
+          <div className="recommend-results">
+            <ul className="recommend-list">
+              {pendingRecommendations.map((entry) => (
+                <li key={entry.item.product_id} className="recommend-item">
+                  <label className="recommend-check">
+                    <input
+                      type="checkbox"
+                      checked={entry.selected}
+                      onChange={() => toggleRecommendation(entry.item.product_id)}
+                    />
+                  </label>
+                  <img
+                    className="cart-thumb"
+                    src={entry.item.product.image_url ?? PRODUCT_IMAGE_FALLBACK}
+                    alt=""
+                    onError={(e) => {
+                      e.currentTarget.src = PRODUCT_IMAGE_FALLBACK;
+                    }}
+                  />
+                  <div className="recommend-meta">
+                    <strong>{entry.item.product.name}</strong>
+                    <span className="muted block">{entry.item.reason}</span>
+                    <span className="muted">{formatPrice(entry.item.product.price)} each</span>
+                  </div>
+                  <div className="qty-controls">
+                    <button
+                      type="button"
+                      onClick={() => updateRecommendationQuantity(entry.item.product_id, -1)}
+                      disabled={!entry.selected}
+                    >
+                      −
+                    </button>
+                    <span>{entry.quantity}</span>
+                    <button
+                      type="button"
+                      onClick={() => updateRecommendationQuantity(entry.item.product_id, 1)}
+                      disabled={!entry.selected}
+                    >
+                      +
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+            <button
+              type="button"
+              className="btn secondary recommend-confirm"
+              onClick={addSelectedRecommendationsToCart}
+            >
+              Add selected to cart
+            </button>
+          </div>
+        )}
+      </section>
 
       {loadingProducts && <p className="muted">Loading products…</p>}
       {error && <p className="error">{error}</p>}
@@ -268,8 +431,7 @@ export function ShopPanel() {
                 value={coords.longitude}
                 onChange={(e) => {
                   setCoords({ ...coords, longitude: Number(e.target.value) });
-                  setPlans(null);
-                  setSelectedPlan(null);
+                  resetCheckoutState();
                 }}
               />
             </label>
@@ -281,8 +443,7 @@ export function ShopPanel() {
                 value={coords.latitude}
                 onChange={(e) => {
                   setCoords({ ...coords, latitude: Number(e.target.value) });
-                  setPlans(null);
-                  setSelectedPlan(null);
+                  resetCheckoutState();
                 }}
               />
             </label>

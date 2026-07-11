@@ -9,6 +9,7 @@ import type {
   OrderPlansRequest,
   OrderTracking,
   Product,
+  RecommendationResponse,
 } from '../types';
 
 export function signUp(payload: {
@@ -32,6 +33,14 @@ export function login(payload: { email: string; password: string }) {
 
 export function getProducts() {
   return apiFetch<Product[]>('/products');
+}
+
+export function getRecommendations(token: string, query: string) {
+  return apiFetch<RecommendationResponse>(
+    '/recommendations',
+    { method: 'POST', body: JSON.stringify({ query }) },
+    token,
+  );
 }
 
 export function getDeliveryPlans(token: string, payload: OrderPlansRequest) {
